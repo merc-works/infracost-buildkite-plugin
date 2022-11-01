@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-PATTERN="$BUILDKITE_PLUGIN_INFRACOST_PATTERN"
+PROJECT="$BUILDKITE_PLUGIN_INFRACOST_PROJECT"
 
 PLAN="${BUILDKITE_PLUGIN_INFRACOST_PLAN:=terraform.tfplan}"
 
@@ -11,10 +11,19 @@ echo "--- :1234: Counting the number of files"
 
 echo "--- Analysing Costs for the :terraform: plan ${PLAN} with ${INFRACOST_VERSION}"
 
-# so here we want to
+# here we will need to convert the Build environment variables to INFRACOST ones
 
-COUNT=$(find . -name "$PATTERN" | wc -l)
+docker run --rm -v $(pwd):/config -w /config \
+		-e INFRACOST_API_KEY \
+		-e INFRACOST_VCS_PULL_REQUEST_URL \
+		-e INFRACOST_VCS_REPOSITORY_URL \
+		-e INFRACOST_VCS_PULL_REQUEST_AUTHOR \
+		-e INFRACOST_VCS_PULL_REQUEST_TITLE \
+		infracost/infracost:$INFRACOST_VERSION \
+			diff --project-name $PROJECT --path $PLAN --format json > infracost.json
 
-echo "Found ${COUNT} files matching ${PATTERN}"
+COUNT=$(find . -name "$PROJECT" | wc -l)
 
-buildkite-agent annotate "Found ${COUNT} files matching ${PATTERN}"
+echo "Found ${COUNT} files matching ${PROJECT}"
+
+buildkite-agent annotate "Found ${COUNT} files matching ${PROJECT}"
