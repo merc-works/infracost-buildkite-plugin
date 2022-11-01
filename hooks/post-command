@@ -3,7 +3,11 @@ set -euo pipefail
 
 PATTERN="$BUILDKITE_PLUGIN_INFRACOST_PATTERN"
 
+PLAN="$BUILDKITE_PLUGIN_INFRACOST_PATTERN"
+
 echo "--- :1234: Counting the number of files"
+
+echo "Analysing Costs for the :terraform: plan {PLAN}"
 
 COUNT=$(find . -name "$PATTERN" | wc -l)
 
