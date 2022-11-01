@@ -1,17 +1,20 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT="$BUILDKITE_PLUGIN_INFRACOST_PROJECT"
+PROJECT="${BUILDKITE_PLUGIN_INFRACOST_PROJECT:=$BUILDKITE_PIPELINE_NAME}"
 
-PLAN="${BUILDKITE_PLUGIN_INFRACOST_PLAN:=terraform.tfplan}"
+PLAN="${BUILDKITE_PLUGIN_INFRACOST_PLAN:=plan.json}"
 
 INFRACOST_VERSION="${BUILDKITE_PLUGIN_INFRACOST_VERSION:=ci-latest}"
+
+INFRACOST_VCS_PROVIDER=$BUILDKITE_PIPELINE_PROVIDER
+INFRACOST_VCS_REPOSITORY_URL=$(dirname $BUILDKITE_PULL_REQUEST_REPO)
+INFRACOST_VCS_PULL_REQUEST_URL=$INFRACOST_VCS_REPOSITORY_URL/pull/$BUILDKITE_PULL_REQUEST
+INFRACOST_VCS_PULL_REQUEST_AUTHOR=$BUILDKITE_BUILD_AUTHOR
 
 echo "--- :1234: Counting the number of files"
 
 echo "--- Analysing Costs for the :terraform: plan ${PLAN} with ${INFRACOST_VERSION}"
-
-# here we will need to convert the Build environment variables to INFRACOST ones
 
 docker run --rm -v $(pwd):/config -w /config \
 		-e INFRACOST_API_KEY \
@@ -21,6 +24,17 @@ docker run --rm -v $(pwd):/config -w /config \
 		-e INFRACOST_VCS_PULL_REQUEST_TITLE \
 		infracost/infracost:$INFRACOST_VERSION \
 			diff --project-name $PROJECT --path $PLAN --format json > infracost.json
+
+docker run --rm -v $(pwd):/config -w /config \
+		-e INFRACOST_API_KEY \
+		-e GITHUB_TOKEN \
+		infracost/infracost:$INFRACOST_VERSION \
+		comment $INFRACOST_VCS_PROVIDER \
+		--path=infracost.json \
+		--repo=$(echo $INFRACOST_VCS_REPOSITORY_URL | cut -d "/" -f 4 -f 5) \
+		--github-token=$(GITHUB_TOKEN) \
+		--pull-request=$BUILDKITE_PULL_REQUEST \
+		--behavior=update
 
 COUNT=$(find . -name "$PROJECT" | wc -l)
 
