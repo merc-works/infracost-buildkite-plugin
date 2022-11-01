@@ -31,7 +31,7 @@ docker run --rm -v $(pwd):/config -w /config \
 		infracost/infracost:$INFRACOST_VERSION \
 		comment $INFRACOST_VCS_PROVIDER \
 		--path=infracost.json \
-		--repo=$(echo $INFRACOST_VCS_REPOSITORY_URL | cut -d "/" -f 4 -f 5) \
+		--repo=irt-group/irtops \
 		--github-token=$GITHUB_TOKEN \
 		--pull-request=$BUILDKITE_PULL_REQUEST \
 		--behavior=update
