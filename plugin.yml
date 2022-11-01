@@ -1,0 +1,11 @@
+name: Infracost
+description: Run Infracost CI/CD
+author: https://github.com/mubeta06
+requirements: []
+configuration:
+  properties:
+    pattern:
+      type: string
+    plan:
+      type: string
+  additionalProperties: false
