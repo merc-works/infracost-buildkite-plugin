@@ -8,8 +8,6 @@ configuration:
       type: string
     plan:
       type: string
-      default: terraform.tfplan
     version:
       type: string
-      default: ci-latest
   additionalProperties: false
