@@ -1,13 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
+case $BUILDKITE_PIPELINE_PROVIDER in
+ github) PULL=pull ;;
+ bitbucket) PULL=pull-requests ;;
+ *) PULL= ;;
+esac
+
 PROJECT="${BUILDKITE_PLUGIN_INFRACOST_PROJECT:=$BUILDKITE_PIPELINE_NAME}"
 PLAN="${BUILDKITE_PLUGIN_INFRACOST_PLAN:=plan.json}"
 
 INFRACOST_VERSION="${BUILDKITE_PLUGIN_INFRACOST_VERSION:=ci-latest}"
 export INFRACOST_VCS_PROVIDER=$BUILDKITE_PIPELINE_PROVIDER
 export INFRACOST_VCS_REPOSITORY_URL=${BUILDKITE_PULL_REQUEST_REPO/.git}
-export INFRACOST_VCS_PULL_REQUEST_URL=$INFRACOST_VCS_REPOSITORY_URL/pull/$BUILDKITE_PULL_REQUEST
+export INFRACOST_VCS_PULL_REQUEST_URL=$INFRACOST_VCS_REPOSITORY_URL/$PULL/$BUILDKITE_PULL_REQUEST
 export INFRACOST_VCS_PULL_REQUEST_AUTHOR=$BUILDKITE_BUILD_AUTHOR
 
 echo "--- Analysing Costs for the :terraform: plan ${PLAN} with ${INFRACOST_VERSION}"
@@ -21,7 +27,9 @@ docker run --rm -v $(pwd):/config -w /config \
 		infracost/infracost:$INFRACOST_VERSION \
 			diff --project-name $PROJECT --path $PLAN --format json > infracost.json
 
-docker run --rm -v $(pwd):/config -w /config \
+if [ INFRACOST_VCS_PROVIDER == 'github' ]
+then
+    docker run --rm -v $(pwd):/config -w /config \
 		-e INFRACOST_API_KEY \
 		-e GITHUB_TOKEN \
 		infracost/infracost:$INFRACOST_VERSION \
@@ -31,3 +39,18 @@ docker run --rm -v $(pwd):/config -w /config \
 		--github-token=$GITHUB_TOKEN \
 		--pull-request=$BUILDKITE_PULL_REQUEST \
 		--behavior=update
+elif [ INFRACOST_VCS_PROVIDER == 'bitbucket' ]
+then
+    docker run --rm -v $(pwd):/config -w /config \
+		-e INFRACOST_API_KEY \
+		-e BITBUCKET_TOKEN \
+		infracost/infracost:$INFRACOST_VERSION \
+		comment $INFRACOST_VCS_PROVIDER \
+		--path=infracost.json \
+		--repo=${INFRACOST_VCS_REPOSITORY_URL#*bitbucket.org/*} \
+		--bitbucket-token=$BITBUCKET_TOKEN \
+		--pull-request=$BUILDKITE_PULL_REQUEST \
+		--behavior=update
+else
+    echo "Unknown VCS_PROVIDER no PR comment added."
+fi
