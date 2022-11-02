@@ -27,7 +27,7 @@ docker run --rm -v $(pwd):/config -w /config \
 		infracost/infracost:$INFRACOST_VERSION \
 			diff --project-name $PROJECT --path $PLAN --format json > infracost.json
 
-if [ INFRACOST_VCS_PROVIDER == 'github' ]
+if [ $INFRACOST_VCS_PROVIDER == 'github' ]
 then
     docker run --rm -v $(pwd):/config -w /config \
 		-e INFRACOST_API_KEY \
@@ -39,7 +39,7 @@ then
 		--github-token=$GITHUB_TOKEN \
 		--pull-request=$BUILDKITE_PULL_REQUEST \
 		--behavior=update
-elif [ INFRACOST_VCS_PROVIDER == 'bitbucket' ]
+elif [ $INFRACOST_VCS_PROVIDER == 'bitbucket' ]
 then
     docker run --rm -v $(pwd):/config -w /config \
 		-e INFRACOST_API_KEY \
